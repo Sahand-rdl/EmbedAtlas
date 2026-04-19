@@ -1,0 +1,38 @@
+[project]
+dependencies = [
+    # Core ML
+    "sentence-transformers>=3.0",
+    "torch",                          # CPU by default, user installs CUDA variant
+
+    # Vector DB
+    "chromadb>=0.5",
+
+    # Chunking
+    "langchain-text-splitters>=0.2",
+
+    # Dimensionality reduction
+    "scikit-learn>=1.4",
+    "umap-learn>=0.5",
+
+    # PDF parsing
+    "pymupdf>=1.24",                  # default
+    # "docling" — optional, documented in README
+
+    # HuggingFace dataset ingestion
+    "huggingface-hub>=0.23",
+    "datasets>=2.19",
+
+    # Visualization
+    "plotly>=5.22",
+
+    # Frontend
+    "streamlit>=1.35",
+
+    # Search
+    "rank-bm25>=0.2",                 # keyword/hybrid
+
+    # Utils
+    "pandas>=2.0",
+    "numpy>=1.26",
+    "tqdm>=4.66",
+]
