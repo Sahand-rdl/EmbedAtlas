@@ -1,0 +1,1 @@
+# EmbedAtlas pages package
