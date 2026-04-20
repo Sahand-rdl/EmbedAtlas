@@ -1,6 +1,5 @@
 """
 EmbedAtlas — Step 4: Search
-Keyword / Semantic / Hybrid search over an embedded collection.
 """
 
 from __future__ import annotations
@@ -37,80 +36,86 @@ if info.count == 0:
 st.markdown(f"**Collection:** `{active}` — **{info.count:,}** chunks")
 st.divider()
 
-# ---------------------------------------------------------------------------
-# Search config
-# ---------------------------------------------------------------------------
-cfg_col, res_col = st.columns([1, 2])
+# ── Query bar — always visible at the top ─────────────────────────────────
+query = st.text_input(
+    "🔍  Search query",
+    placeholder="e.g.  What is machine learning?  /  transformer architecture  /  Paris",
+)
 
-with cfg_col:
-    st.markdown("### Search mode")
+st.divider()
+
+# ── Settings row ──────────────────────────────────────────────────────────
+cfg1, cfg2, cfg3 = st.columns(3)
+
+with cfg1:
+    st.markdown("**Search mode**")
     mode = st.radio(
-        "Mode",
+        "mode",
         ["Hybrid", "Semantic", "Keyword"],
         index=0,
         label_visibility="collapsed",
         help=(
-            "**Hybrid**: keyword hits ranked first, semantic results fill the rest.\n\n"
-            "**Semantic**: pure vector similarity — finds conceptually related chunks "
-            "even without exact word matches.\n\n"
-            "**Keyword**: BM25 exact/fuzzy term matching across all stored text."
+            "**Hybrid**: keyword hits first, semantic results fill the rest.\n\n"
+            "**Semantic**: finds conceptually related text even without exact words.\n\n"
+            "**Keyword**: exact/fuzzy BM25 term matching."
         ),
     )
 
-    st.markdown("### Model")
-    # Infer model from collection metadata if available
-    stored_model = info.metadata.get("model_id")
-    model_ids = [m["model_id"] for m in EMBEDDING_MODELS]
-
-    if stored_model and stored_model in model_ids:
-        model_display = next(
-            m["display_name"] for m in EMBEDDING_MODELS if m["model_id"] == stored_model
-        )
-        st.info(f"Using collection model: `{stored_model.split('/')[-1]}`", icon="🔗")
-        selected_model_id = stored_model
-    else:
-        display_names = [m["display_name"] for m in EMBEDDING_MODELS]
-        selected_display = st.selectbox(
-            "Embedding model",
-            options=display_names,
-            index=0,
-            label_visibility="collapsed",
-            help="Must match the model used during embedding, otherwise results will be poor.",
-        )
-        selected_model_id = next(
-            m["model_id"]
-            for m in EMBEDDING_MODELS
-            if m["display_name"] == selected_display
-        )
-
-    st.markdown("### Results")
+with cfg2:
+    st.markdown("**Results**")
     top_k = st.slider(
-        "Top-K results",
+        "Top-K",
         min_value=1,
         max_value=MAX_TOP_K,
         value=DEFAULT_TOP_K,
+        label_visibility="collapsed",
     )
 
-    # Optional metadata filter
-    st.markdown("### Filter  *(optional)*")
+with cfg3:
+    st.markdown("**Narrow by label** *(optional)*")
     if info.metadata_keys:
         filter_key = st.selectbox(
-            "Filter by field",
-            options=["(no filter)"] + info.metadata_keys,
+            "Field",
+            options=["(all results)"] + info.metadata_keys,
+            label_visibility="collapsed",
+            help="Restrict results to chunks with a specific metadata value. "
+            "Useful if you ingested multiple datasets into one collection.",
         )
-        if filter_key != "(no filter)":
+        if filter_key != "(all results)":
             unique_vals = vs.get_unique_metadata_values(active, filter_key)
-            filter_val = st.selectbox("Value", options=unique_vals)
+            filter_val = st.selectbox(
+                "Value", options=unique_vals, label_visibility="collapsed"
+            )
             where_filter = {filter_key: filter_val}
         else:
             where_filter = None
     else:
-        st.caption("No metadata fields found in this collection.")
+        st.caption("No metadata fields in this collection.")
         where_filter = None
 
-# ---------------------------------------------------------------------------
-# Engine (cached per collection + model to avoid reloading BM25)
-# ---------------------------------------------------------------------------
+st.divider()
+
+# ── Model selection ────────────────────────────────────────────────────────
+# Try session state first (set by embed page), then collection metadata
+stored_model = st.session_state.get(f"model_id_{active}") or info.metadata.get(
+    "model_id"
+)
+model_ids = [m["model_id"] for m in EMBEDDING_MODELS]
+
+if stored_model and stored_model in model_ids:
+    selected_model_id = stored_model
+    st.caption(f"🔗 Using embedding model: `{stored_model.split('/')[-1]}`")
+else:
+    st.caption(
+        "⚠️ Could not detect which model was used. Select the one you embedded with:"
+    )
+    display_names = [m["display_name"] for m in EMBEDDING_MODELS]
+    selected_display = st.selectbox("Embedding model", options=display_names, index=0)
+    selected_model_id = next(
+        m["model_id"] for m in EMBEDDING_MODELS if m["display_name"] == selected_display
+    )
+
+# ── Engine init ────────────────────────────────────────────────────────────
 engine_key = f"rag_engine_{active}_{selected_model_id}"
 if engine_key not in st.session_state:
     with st.spinner("Initialising search engine…"):
@@ -126,50 +131,41 @@ if engine_key not in st.session_state:
 
 engine: RAGEngine = st.session_state[engine_key]
 
-# ---------------------------------------------------------------------------
-# Query input + search
-# ---------------------------------------------------------------------------
-with res_col:
-    query = st.text_input(
-        "Search query",
-        placeholder="What is the capital of Germany?",
-        label_visibility="collapsed",
-    ).strip()
+# ── Run search ─────────────────────────────────────────────────────────────
+if not query.strip():
+    st.info("Type a query above and press Enter to search.", icon="👆")
+    st.stop()
 
-    if not query:
-        st.info("Enter a query above to search.", icon="🔍")
+with st.spinner(f"Running {mode.lower()} search…"):
+    try:
+        results = engine.search(
+            query=query.strip(),
+            mode=mode.lower(),
+            top_k=top_k,
+            where=where_filter if mode.lower() != "keyword" else None,
+        )
+    except Exception as e:
+        st.error(f"Search failed: {e}")
         st.stop()
 
-    with st.spinner(f"Running {mode.lower()} search…"):
-        try:
-            results = engine.search(
-                query=query,
-                mode=mode.lower(),
-                top_k=top_k,
-                where=where_filter if mode.lower() != "keyword" else None,
-            )
-        except Exception as e:
-            st.error(f"Search failed: {e}")
-            st.stop()
+render_search_results(results, query=query)
 
-    render_search_results(results, query=query)
-
-    if results:
-        st.divider()
-        dl1, dl2 = st.columns(2)
-        with dl1:
-            st.download_button(
-                "⬇️  Export as CSV",
-                data=results_to_csv(results),
-                file_name=f"{active}_results.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-        with dl2:
-            st.download_button(
-                "⬇️  Export as JSON",
-                data=results_to_json(results),
-                file_name=f"{active}_results.json",
-                mime="application/json",
-                use_container_width=True,
-            )
+if results:
+    st.divider()
+    dl1, dl2 = st.columns(2)
+    with dl1:
+        st.download_button(
+            "⬇️  Export as CSV",
+            data=results_to_csv(results),
+            file_name=f"{active}_results.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    with dl2:
+        st.download_button(
+            "⬇️  Export as JSON",
+            data=results_to_json(results),
+            file_name=f"{active}_results.json",
+            mime="application/json",
+            use_container_width=True,
+        )
