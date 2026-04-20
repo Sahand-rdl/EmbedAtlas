@@ -1,6 +1,6 @@
 [build-system]
 requires      = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name        = "embedatlas"
@@ -83,7 +83,7 @@ dev = [
 ]
 
 [project.scripts]
-embedatlas = "cli:main"
+embedatlas = "embedatlas.cli:main"
 
 [project.urls]
 Homepage   = "https://github.com/your-org/embedatlas"
