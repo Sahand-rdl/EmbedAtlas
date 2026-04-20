@@ -115,9 +115,3 @@ cd embedatlas
 pip install -e ".[dev]"
 streamlit run embedatlas/app.py
 ```
-
----
-
-## License
-
-MIT — see [LICENSE](LICENSE).
