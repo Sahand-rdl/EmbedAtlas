@@ -1,18 +1,13 @@
 """
 EmbedAtlas — Step 3: Explore
 PCA / UMAP / t-SNE interactive Plotly scatter plots.
-Hover over any point to see the original chunk text retrieved from ChromaDB.
 """
 
 from __future__ import annotations
 
 import streamlit as st
 
-from embedatlas.config import (
-    DEFAULT_SAMPLE_FRACTION,
-    TSNE_DEFAULTS,
-    UMAP_DEFAULTS,
-)
+from embedatlas.config import DEFAULT_SAMPLE_FRACTION, TSNE_DEFAULTS, UMAP_DEFAULTS
 from embedatlas.core.exporter import sample_to_csv, sample_to_json
 from embedatlas.core.reduction import compute_sample_size, reduce_and_plot
 from embedatlas.core.vectorstore import VectorStore
@@ -47,9 +42,7 @@ if info.count == 0:
 st.markdown(f"**Collection:** `{active}` — **{info.count:,}** chunks")
 st.divider()
 
-# ---------------------------------------------------------------------------
-# Controls (left column) + Plot (right column)
-# ---------------------------------------------------------------------------
+# ── Layout: controls left, plot right ─────────────────────────────────────
 ctrl_col, plot_col = st.columns([1, 3])
 
 with ctrl_col:
@@ -68,8 +61,7 @@ with ctrl_col:
         options=color_options,
         index=0,
         label_visibility="collapsed",
-        help="Pick a metadata field to colour the scatter points. "
-        "Set labels during Ingest for meaningful colours.",
+        help="Pick a metadata field to colour points. Set a label during Ingest for best results.",
     )
     color_by = None if color_by_raw == "(none)" else color_by_raw
 
@@ -80,17 +72,14 @@ with ctrl_col:
         default_fraction=DEFAULT_SAMPLE_FRACTION,
     )
 
-    # ── Method-specific params ───────────────────────────────────────
     st.markdown("### Parameters")
-
     if method == "t-SNE":
         perplexity = st.slider(
             "Perplexity",
             min_value=2,
             max_value=200,
             value=TSNE_DEFAULTS["perplexity"],
-            help="Controls how much t-SNE balances local vs global structure. "
-            "Typical range: 5–50. Must be < number of points.",
+            help="Balance local vs global structure. Typical: 5–50.",
         )
         max_iter = st.slider(
             "Max iterations",
@@ -105,7 +94,7 @@ with ctrl_col:
             min_value=2,
             max_value=200,
             value=UMAP_DEFAULTS["n_neighbors"],
-            help="Local neighbourhood size. Smaller = more local detail.",
+            help="Neighbourhood size. Smaller = more local detail.",
         )
         min_dist = st.slider(
             "min_dist",
@@ -113,101 +102,88 @@ with ctrl_col:
             max_value=1.0,
             value=UMAP_DEFAULTS["min_dist"],
             step=0.05,
-            help="Minimum distance between points in the embedding. "
-            "Smaller = tighter clusters.",
+            help="Minimum distance between points. Smaller = tighter clusters.",
         )
 
-    # ── Visual settings ───────────────────────────────────────────────
     with st.expander("Visual settings"):
         point_size = st.slider("Point size", 2, 20, 6)
         point_opacity = st.slider("Opacity", 0.1, 1.0, 0.75, step=0.05)
         dark_mode = st.toggle("Dark background", value=False)
 
     st.divider()
-
     run_btn = st.button(
-        "▶  Run visualisation",
-        type="primary",
-        use_container_width=True,
+        "▶  Run visualisation", type="primary", use_container_width=True
     )
 
-# ---------------------------------------------------------------------------
-# Run + render
-# ---------------------------------------------------------------------------
-with plot_col:
-    if not run_btn:
+# ── Guard: don't enter plot_col with st.stop() — render placeholder instead
+if not run_btn:
+    with plot_col:
         st.info(
             "Configure the options on the left and click **Run visualisation**.",
             icon="👈",
         )
-        st.stop()
+else:
+    with plot_col:
+        # Centroid warning
+        _, will_centroids, _ = compute_sample_size(info.count, fraction, method)
+        if will_centroids:
+            info_centroid_mode(method)
 
-    # ── Centroid warning ─────────────────────────────────────────────
-    _, will_centroids, centroid_warning = compute_sample_size(
-        info.count, fraction, method
-    )
-    if will_centroids:
-        info_centroid_mode(method)
+        # Sample from ChromaDB
+        with st.spinner(f"Sampling {n_samples:,} chunks from ChromaDB…"):
+            try:
+                sample = vs.sample_embeddings(active, n=n_samples)
+            except Exception as e:
+                st.error(f"Failed to load embeddings: {e}")
+                st.stop()
 
-    # ── Sample from ChromaDB ─────────────────────────────────────────
-    with st.spinner(f"Sampling {n_samples:,} chunks from ChromaDB…"):
-        try:
-            sample = vs.sample_embeddings(active, n=n_samples)
-        except Exception as e:
-            st.error(f"Failed to load embeddings: {e}")
+        if not sample["ids"]:
+            st.error("No embeddings returned. Try re-embedding the collection.")
             st.stop()
 
-    if not sample["ids"]:
-        st.error("No embeddings returned from the collection.")
-        st.stop()
-
-    # ── Dimensionality reduction ─────────────────────────────────────
-    kwargs: dict = dict(
-        sample=sample,
-        method=method,
-        color_by=color_by,
-        point_size=point_size,
-        point_opacity=point_opacity,
-        dark_mode=dark_mode,
-    )
-    if method == "t-SNE":
-        kwargs["tsne_perplexity"] = perplexity
-        kwargs["tsne_max_iter"] = max_iter
-    elif method == "UMAP":
-        kwargs["umap_n_neighbors"] = n_neighbors
-        kwargs["umap_min_dist"] = min_dist
-
-    spinner_label = f"Running {method} on {len(sample['ids']):,} points…"
-    with st.spinner(spinner_label):
-        try:
-            fig, used_centroids, info_msg = reduce_and_plot(**kwargs)
-        except Exception as e:
-            st.error(f"Reduction failed: {e}")
-            st.stop()
-
-    if info_msg:
-        st.info(info_msg, icon="ℹ️")
-
-    # ── Plot ─────────────────────────────────────────────────────────
-    st.plotly_chart(fig, use_container_width=True)
-
-    # ── Export buttons ───────────────────────────────────────────────
-    exp1, exp2 = st.columns(2)
-    with exp1:
-        csv_data = sample_to_csv(sample)
-        st.download_button(
-            "⬇️  Export sample as CSV",
-            data=csv_data,
-            file_name=f"{active}_sample.csv",
-            mime="text/csv",
-            use_container_width=True,
+        # Build kwargs
+        kwargs: dict = dict(
+            sample=sample,
+            method=method,
+            color_by=color_by,
+            point_size=point_size,
+            point_opacity=point_opacity,
+            dark_mode=dark_mode,
         )
-    with exp2:
-        json_data = sample_to_json(sample, include_embeddings=False)
-        st.download_button(
-            "⬇️  Export sample as JSON",
-            data=json_data,
-            file_name=f"{active}_sample.json",
-            mime="application/json",
-            use_container_width=True,
-        )
+        if method == "t-SNE":
+            kwargs["tsne_perplexity"] = perplexity
+            kwargs["tsne_max_iter"] = max_iter
+        elif method == "UMAP":
+            kwargs["umap_n_neighbors"] = n_neighbors
+            kwargs["umap_min_dist"] = min_dist
+
+        # Run reduction
+        with st.spinner(f"Running {method} on {len(sample['ids']):,} points…"):
+            try:
+                fig, used_centroids, info_msg = reduce_and_plot(**kwargs)
+            except Exception as e:
+                st.error(f"Reduction failed: {e}")
+                st.stop()
+
+        if info_msg:
+            st.info(info_msg, icon="ℹ️")
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        exp1, exp2 = st.columns(2)
+        with exp1:
+            st.download_button(
+                "⬇️  Export sample as CSV",
+                data=sample_to_csv(sample),
+                file_name=f"{active}_sample.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        with exp2:
+            st.download_button(
+                "⬇️  Export sample as JSON",
+                data=sample_to_json(sample, include_embeddings=False),
+                file_name=f"{active}_sample.json",
+                mime="application/json",
+                use_container_width=True,
+            )
