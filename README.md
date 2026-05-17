@@ -15,39 +15,12 @@ Ingest any text dataset → generate vector embeddings → explore clusters inte
 | **4 · Search**                    | Type a query                                                                   | Returns ranked results via keyword, semantic, or hybrid search                    |
 
 ---
-<h2>What it does</h2>
-
-<table>
-  <thead>
-    <tr>
-      <th style="width: 220px;">Step</th>
-      <th>What you do</th>
-      <th>What EmbedAtlas does</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>1 · Ingest</strong></td>
-      <td>Upload files, point to a folder, paste a HuggingFace dataset ID, or drop in a URL</td>
-      <td>Loads and chunks your text with overlap-aware splitting</td>
-    </tr>
-    <tr>
-      <td><strong>2 · Embed</strong></td>
-      <td>Pick an embedding model from the dropdown</td>
-      <td>Encodes every chunk and stores vectors in ChromaDB</td>
-    </tr>
-    <tr>
-      <td><strong>3 · Explore</strong></td>
-      <td>Choose PCA, UMAP, or t-SNE</td>
-      <td>Renders an interactive Plotly scatter; hover any point to read the original text</td>
-    </tr>
-    <tr>
-      <td><strong>4 · Search</strong></td>
-      <td>Type a query</td>
-      <td>Returns ranked results via keyword, semantic, or hybrid search</td>
-    </tr>
-  </tbody>
-</table>
+| Step&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | What you do | What EmbedAtlas does |
+| --- | --- | --- |
+| **1 · Ingest** | Upload files, point to a folder, paste a HuggingFace dataset ID, or drop in a URL | Loads and chunks your text with overlap-aware splitting |
+| **2 · Embed** | Pick an embedding model from the dropdown | Encodes every chunk and stores vectors in ChromaDB |
+| **3 · Explore** | Choose PCA, UMAP, or t-SNE | Renders an interactive Plotly scatter; hover any point to read the original text |
+| **4 · Search** | Type a query | Returns ranked results via keyword, semantic, or hybrid search |
 
 ## Installation
 
