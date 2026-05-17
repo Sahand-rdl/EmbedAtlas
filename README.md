@@ -10,10 +10,10 @@ Ingest any text dataset → generate vector embeddings → explore clusters inte
 ---
 | Step | What you do | What EmbedAtlas does |
 | --- | --- | --- |
-| **1 · Ingest** | Upload files, point to a folder, paste a HuggingFace dataset ID, or drop in a URL | Loads and chunks your text with overlap-aware splitting |
-| **2 · Embed** | Pick an embedding model from the dropdown | Encodes every chunk and stores vectors in ChromaDB |
-| **3 · Explore** | Choose PCA, UMAP, or t-SNE | Renders an interactive Plotly scatter; hover any point to read the original text |
-| **4 · Search** | Type a query | Returns ranked results via keyword, semantic, or hybrid search |
+| **Ingest** | Upload files, point to a folder, paste a HuggingFace dataset ID, or drop in a URL | Loads and chunks your text with overlap-aware splitting |
+| **Embed** | Pick an embedding model from the dropdown | Encodes every chunk and stores vectors in ChromaDB |
+| **Explore** | Choose PCA, UMAP, or t-SNE | Renders an interactive Plotly scatter; hover any point to read the original text |
+| **Search** | Type a query | Returns ranked results via keyword, semantic, or hybrid search |
 
 ## Installation
 
