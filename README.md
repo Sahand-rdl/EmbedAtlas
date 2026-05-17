@@ -7,12 +7,12 @@ Ingest any text dataset → generate vector embeddings → explore clusters inte
 
 ## What it does
 
-| Step                  | What you do                                                                | What EmbedAtlas does                                                              |
-| --------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-|    **1 · Ingest**     | Upload files, point to a folder, paste a HuggingFace dataset ID, or drop in a URL | Loads and chunks your text with overlap-aware splitting                           |
-|    **2 · Embed**      | Pick an embedding model from the dropdown                                         | Encodes every chunk and stores vectors in ChromaDB                                |
-|    **3 · Explore**    | Choose PCA, UMAP, or t-SNE                                                        | Renders an interactive Plotly scatter; hover any point to read the original text |
-|    **4 · Search**     | Type a query                                                                      | Returns ranked results via keyword, semantic, or hybrid search                    |
+| Step                      | What you do                                                                    | What EmbedAtlas does                                                              |
+| :------------------------ | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| **1 · Ingest**            | Upload files, point to a folder, paste a HuggingFace dataset ID, or drop in a URL | Loads and chunks your text with overlap-aware splitting                           |
+| **2 · Embed**             | Pick an embedding model from the dropdown                                      | Encodes every chunk and stores vectors in ChromaDB                                |
+| **3 · Explore**           | Choose PCA, UMAP, or t-SNE                                                     | Renders an interactive Plotly scatter; hover any point to read the original text |
+| **4 · Search**            | Type a query                                                                   | Returns ranked results via keyword, semantic, or hybrid search                    |
 
 ---
 
@@ -93,8 +93,8 @@ EmbedAtlas persists all embeddings in **ChromaDB** at `data/collections/`. Colle
 | Mode                       | How it works                                                                                |
 | -------------------------- | ------------------------------------------------------------------------------------------- |
 | **Hybrid** _(recommended)_ | Keyword hits ranked first, semantic results fill the rest. Each result shows a match badge. |
-| **Semantic**               | Pure vector similarity — finds conceptually related chunks even without exact word matches  |
-| **Keyword**                | BM25 term matching — fast, exact, no model required                                         |
+| **Semantic**               | Pure vector similarity: finds conceptually related chunks even without exact word matches  |
+| **Keyword**                | BM25 term matching: fast, exact, no model required                                         |
 
 ---
 
